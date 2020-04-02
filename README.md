@@ -1,5 +1,5 @@
 # Simple mesh
-Generate simple mesh used for [CB-Geo MPM](https://cb-geo.github.io/mpm)
+Generate simple mesh used for [CB-Geo MPM](https://github.com/cb-geo/mpm)
 
 Current support:
 * 3D MPM mesh (E3DH8)
