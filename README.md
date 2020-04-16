@@ -2,6 +2,8 @@
 Generate simple mesh used for [CB-Geo MPM](https://github.com/cb-geo/mpm)
 
 Current support:
+* 2D MPM mesh (ED2Q4)
+* 2D GIMP mesh (ED2Q16G)
 * 3D MPM mesh (E3DH8)
 * 3D GIMP mesh (E3DH64G)
 
