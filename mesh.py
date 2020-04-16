@@ -265,11 +265,13 @@ def gimp_mesh3d(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, zmin=0.0, zmax=1.0, size
 
 #Save nodes coordinate up to 5 dicimal digit
 #Save elem node
-def save_mesh(nodes, mesh, name):
+
+def save_mesh(nodes, elem, name):
+    shape={4:'quadrilateral',16:'quadrilateral',8:'hexahedron',64:'hexahedron'}
     mesh_file = name+".txt"
     f_m = open(mesh_file, "w")
-
-    head = '#! elementShape hexahedron\n#! elementNumPoints {}\n{} {} \n'.format(
+    
+    head = '#! elementShape {}\n#! elementNumPoints {}\n{} {} \n'.format(shape[elem.shape[1]],
                                  elem.shape[1], nodes.shape[0], elem.shape[0])
     f_m.write(head)
     numpy.savetxt(f_m, nodes, fmt="%.5f", delimiter="\t")
@@ -277,7 +279,22 @@ def save_mesh(nodes, mesh, name):
     f_m.close()
 
 
-def cube_particle(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, zmin=0.0, zmax=1.0, size=1.):
+def cube_particle2d(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, size=1.):
+
+    # Generate suitable ranges for parametrization
+    x_range = numpy.arange(xmin+0.5*size, xmax, size)
+    y_range = numpy.arange(ymin+0.5*size, ymax, size)
+
+    # Create the vertices.
+    x, y = numpy.meshgrid(x_range, y_range, indexing="ij")
+    particles = numpy.array([x, y]).T.reshape(-1, 2)
+    
+    return particles
+
+
+
+
+def cube_particle3d(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, zmin=0.0, zmax=1.0, size=1.):
 
     # Generate suitable ranges for parametrization
     x_range = numpy.arange(xmin+0.5*size, xmax, size)
@@ -291,7 +308,7 @@ def cube_particle(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, zmin=0.0, zmax=1.0, si
     return particles
 
 
-def cylinder_particle(center=[0.,0.,0.],r=1,h=1, axis=2, size=1.):
+def cylinder_particle3d(center=[0.,0.,0.],r=1,h=1, axis=2, size=1.):
     xmin = center[0]-r
     xmax = center[0]+r
     ymin = center[1]-r
@@ -318,7 +335,7 @@ def cylinder_particle(center=[0.,0.,0.],r=1,h=1, axis=2, size=1.):
         print "axis should be 0,1 or 2."
     return particles_temp[index]
 
-def cylinder_quarter_particle(center=[0.,0.,0.],r=1,h=1, axis=2, size=1.):
+def cylinder_quarter_particle3d(center=[0.,0.,0.],r=1,h=1, axis=2, size=1.):
     particles_temp = cylinder_particle(center=center,r=r,h=h, axis=axis, size=size)
     
     if axis == 0:
@@ -352,20 +369,21 @@ def save_entries(index, name):
     f.close()
 
 
-# creat and save mesh
-nodes,elem = gimp_mesh2d(xmin=0., xmax=2., ymin=0., ymax=1., sizex=1, sizey=1)
+# create and save mesh
+nodes,elem = gimp_mesh2d(xmin=0., xmax=3., ymin=0., ymax=1., sizex=0.1, sizey=0.1)
 save_mesh(nodes, elem, "gimp_mesh2d")
 
-# # find boundary node set
-# boundary = numpy.where(nodes[:,2]<0.0001)
-# save_entries(boundary, "bottom_node_id")
+# find boundary node set
+boundary = numpy.where(nodes[:,1]<0.0001)
+save_entries(boundary, "bottom_node_id")
 
-# # find boundary node set
-# boundary = numpy.where(numpy.absolute(nodes[:,0])<0.0001)
-# save_entries(boundary, "boundary_mesh_x")
+# find boundary node set
+boundary = numpy.where(numpy.absolute(nodes[:,0])<0.0001)
+save_entries(boundary, "boundary_mesh_x")
 
-# # creat and save particle
-# #particles=cube_particle(xmin=0, xmax=7, ymin=3, ymax=7, zmin=6, zmax=9, size=0.25)
+# create and save particle
+particles=cube_particle2d(xmin=0, xmax=1, ymin=0, ymax=1, size=0.05)
+save_particle(particles, "particles")
 
 # particles = cylinder_quarter_particle(center=[0.,0.,0.],r=1., h=1., axis=2, size=0.06666666666667)
 # save_particle(particles, "particles")
