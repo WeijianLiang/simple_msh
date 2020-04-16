@@ -1,7 +1,117 @@
 import numpy
+from mpl_toolkits.mplot3d import Axes3D 
+import matplotlib.pyplot as plt
+
+def mpm_mesh2d(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, sizex=1, sizey=1):
+    #  4-node Quadrilateral Element
+    # ! 3 0----------0 2
+    # !   |          |
+    # !   |          |
+    # !   |          |
+    # !   |          |
+    # ! 0 0----------0 1
+
+    # Generate suitable ranges for parametrization
+    x_range = numpy.arange(xmin, xmax+1.e-15, sizex)
+    y_range = numpy.arange(ymin, ymax+1.e-15, sizey)
+
+    nx=x_range.shape[0]
+    ny=y_range.shape[0]
+
+    # Create the vertices.
+    x, y = numpy.meshgrid(x_range, y_range, indexing="ij")
+    nodes = numpy.array([x, y]).T.reshape(-1, 2)
+    
+    v0 = numpy.add.outer(numpy.array(range(nx - 1)), nx * numpy.array(range(ny - 1))).T.flatten()
+
+    elem = numpy.array([v0,v0,v0,v0],dtype='int').transpose()
+
+    elem[:, 0] += 0
+    elem[:, 1] += 1
+    elem[:, 2] += nx+1
+    elem[:, 3] += nx
+    return nodes, elem
 
 
-def mpm_mesh(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, zmin=0.0, zmax=1.0, sizex=1, sizey=1, sizez=1):
+
+def gimp_mesh2d(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, sizex=1, sizey=1):
+    # #16 Nodes GIMP
+    # //!   13----------12----------11----------10
+    # //!   |           |           |           |
+    # //!   |           |           |           |
+    # //!   |           |           |           |
+    # //!   |        (-1, 1)      (1,1)         |
+    # //!   14----------3-----------2-----------9
+    # //!   |           |           |           |
+    # //!   |           | particle  |           |
+    # //!   |           | location  |           |
+    # //!   |           |           |           |
+    # //!   15----------0-----------1-----------8
+    # //!   |        (-1,-1)      (1,-1)        |
+    # //!   |           |           |           |
+    # //!   |           |           |           |
+    # //!   |           |           |           |
+    # //!   4-----------5-----------6-----------7
+
+    # Creat2 additional node for gimp, before start and after end
+    x_range = numpy.arange(xmin-sizex, xmax+sizex+1.e-15, sizex)
+    y_range = numpy.arange(ymin-sizex, ymax+sizey+1.e-15, sizey)
+
+    nx=x_range.shape[0]
+    ny=y_range.shape[0]
+
+    # Create the vertices.
+    x, y = numpy.meshgrid(x_range, y_range , indexing="ij")
+    nodes = numpy.array([x, y]).T.reshape(-1, 2)
+
+    # Get the index of the start point of each group
+    v0 = numpy.add.outer(numpy.array(range(1, nx - 2)), nx * numpy.array(range(1, ny - 2))).T.flatten()
+    v1 = numpy.add.outer(numpy.array(range(0, nx - 3)), nx * numpy.array(range(0, ny - 3))).T.flatten()
+
+    # Initialize each goup with start point id
+    group0 = numpy.repeat([v0],4,axis=0)
+    group1 = numpy.repeat([v1],12,axis=0)
+
+    # Concatenate them
+    elem=numpy.concatenate((group0,group1), axis=0).transpose()
+
+    #First group
+    elem[:,0] += 0
+    elem[:,1] += 1
+    elem[:,2] += nx+1
+    elem[:,3] += nx
+
+    #Second group
+    elem[:,4] += 0
+    elem[:,5] += 1
+    elem[:,6] += 2
+    elem[:,7] += 3
+    elem[:,8] += nx+3
+    elem[:,9] += 2*nx +3
+    elem[:,10] += 3*nx +3
+    elem[:,11] += 3*nx +2
+    elem[:,12] += 3*nx +1
+    elem[:,13] += 3*nx 
+    elem[:,14] += 2*nx
+    elem[:,15] += 1*nx
+
+    return nodes, elem
+
+
+def mpm_mesh3d(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, zmin=0.0, zmax=1.0, sizex=1, sizey=1, sizez=1):
+    # Hexahedron:           
+    #        v
+    # 3----------2          
+    # |\     ^   |\         
+    # | \    |   | \         
+    # |  \   |   |  \        
+    # |   7------+---6        
+    # |   |  +-- |-- | -> u  
+    # 0---+---\--1   |        
+    #  \  |    \  \  |      
+    #   \ |     \  \ |       
+    #    \|      w  \|         
+    #     4----------5    
 
     # Generate suitable ranges for parametrization
     x_range = numpy.arange(xmin, xmax+1.e-15, sizex)
@@ -16,20 +126,7 @@ def mpm_mesh(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, zmin=0.0, zmax=1.0, sizex=1
     x, y, z = numpy.meshgrid(x_range, y_range, z_range, indexing="ij")
     nodes = numpy.array([x, y, z]).T.reshape(-1, 3)
     
-    # Hexahedron:             Hexahedron20:          Hexahedron27:
-    #        v
-    # 3----------2            3----13----2           3----13----2
-    # |\     ^   |\           |\         |\          |\         |\
-    # | \    |   | \          | 15       | 14        |15    24  | 14
-    # |  \   |   |  \         9  \       11 \        9  \ 20    11 \
-    # |   7------+---6        |   7----19+---6       |   7----19+---6
-    # |   |  +-- |-- | -> u   |   |      |   |       |22 |  26  | 23|
-    # 0---+---\--1   |        0---+-8----1   |       0---+-8----1   |
-    #  \  |    \  \  |         \  17      \  18       \ 17    25 \  18
-    #   \ |     \  \ |         10 |        12|        10 |  21    12|
-    #    \|      w  \|           \|         \|          \|         \|
-    #     4----------5            4----16----5           4----16----5
-
+    # Compute vertex id
     temp_v0 = numpy.add.outer(numpy.array(range(nx - 1)), nx * numpy.array(range(ny - 1)))
     v0 = numpy.add.outer(temp_v0, nx * ny * numpy.array(range(nz - 1))).T.flatten()
 
@@ -49,8 +146,7 @@ def mpm_mesh(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, zmin=0.0, zmax=1.0, sizex=1
     return nodes, elem
  
 
-
-def gimp_mesh(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, zmin=0.0, zmax=1.0, sizex=1, sizey=1, sizez=1):
+def gimp_mesh3d(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, zmin=0.0, zmax=1.0, sizex=1, sizey=1, sizez=1):
  
     # Creat additional node for gimp, before start and after end
     x_range = numpy.arange(xmin-sizex, xmax+sizex+1.e-15, sizex)
@@ -181,7 +277,6 @@ def save_mesh(nodes, mesh, name):
     f_m.close()
 
 
-
 def cube_particle(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, zmin=0.0, zmax=1.0, size=1.):
 
     # Generate suitable ranges for parametrization
@@ -196,25 +291,90 @@ def cube_particle(xmin=0.0, xmax=1.0, ymin=0.0, ymax=1.0, zmin=0.0, zmax=1.0, si
     return particles
 
 
+def cylinder_particle(center=[0.,0.,0.],r=1,h=1, axis=2, size=1.):
+    xmin = center[0]-r
+    xmax = center[0]+r
+    ymin = center[1]-r
+    ymax = center[1]+r
+    zmin = center[2]
+    zmax = center[2]+h
+
+    # Generate suitable ranges for parametrization
+    x_range = numpy.arange(xmin+0.5*size, xmax, size)
+    y_range = numpy.arange(ymin+0.5*size, ymax, size)
+    z_range = numpy.arange(zmin+0.5*size, zmax, size)
+
+    # Create the vertices.
+    x, y, z = numpy.meshgrid(x_range, y_range, z_range, indexing="ij")
+    particles_temp = numpy.array([x, y, z]).T.reshape(-1, 3)
+    
+    if axis == 0:
+        index = numpy.where(numpy.linalg.norm(particles_temp[:,[1,2]],axis=1)<(numpy.sqrt(r*r)+1.e-15))
+    elif axis == 1:
+        index = numpy.where(numpy.linalg.norm(particles_temp[:,[0,2]],axis=1)<(numpy.sqrt(r*r)+1.e-15))
+    elif axis == 2:
+        index = numpy.where(numpy.linalg.norm(particles_temp[:,[0,1]],axis=1)<(numpy.sqrt(r*r)+1.e-15))
+    else:
+        print "axis should be 0,1 or 2."
+    return particles_temp[index]
+
+def cylinder_quarter_particle(center=[0.,0.,0.],r=1,h=1, axis=2, size=1.):
+    particles_temp = cylinder_particle(center=center,r=r,h=h, axis=axis, size=size)
+    
+    if axis == 0:
+        index = numpy.where((particles_temp[:,1]>-1.e-15) & (particles_temp[:,2]>-1.e-15) )
+    elif axis == 1:
+        index = numpy.where((particles_temp[:,0]>-1.e-15) & (particles_temp[:,2]>-1.e-15) )
+    elif axis == 2:
+        index = numpy.where((particles_temp[:,0]>-1.e-15) & (particles_temp[:,1]>-1.e-15) )
+    else:
+        print "axis should be 0,1 or 2."
+
+    return particles_temp[index]
+
+
+
 #Save particle coordinate up to 5 dicimal digit
 def save_particle(particles, name):
     file_name = name+".txt"
     f = open(file_name, "w")
     head = '{}\n'.format(particles.shape[0])
     f.write(head)
-    numpy.savetxt(f, particles, fmt="%.5f", delimiter="\t")
+    numpy.savetxt(f, particles, fmt="%.6f", delimiter="\t")
+    f.close()
+
+def save_entries(index, name):
+    file_name = name+".txt"
+    f = open(file_name, "w")
+    head = '{}\n'.format(len(index))
+    f.write(head)
+    numpy.savetxt(f, index, fmt="%i", delimiter=", ")
     f.close()
 
 
-
-
 # creat and save mesh
-nodes,elem = gimp_mesh(xmin=1.0, xmax=9.0, ymin=1.0, ymax=9.0, zmin=1.0, zmax=9.0, sizex=1, sizey=1, sizez=1)
-save_mesh(nodes, elem, "gimp_mesh")
+nodes,elem = gimp_mesh2d(xmin=0., xmax=2., ymin=0., ymax=1., sizex=1, sizey=1)
+save_mesh(nodes, elem, "gimp_mesh2d")
 
-# find boundary node set
-print numpy.where(nodes[:,2]<1.01)
+# # find boundary node set
+# boundary = numpy.where(nodes[:,2]<0.0001)
+# save_entries(boundary, "bottom_node_id")
 
-# creat and save particle
-particles=cube_particle(xmin=3, xmax=7, ymin=3, ymax=7, zmin=6, zmax=9, size=0.25)
-save_particle(particles, "particles")
+# # find boundary node set
+# boundary = numpy.where(numpy.absolute(nodes[:,0])<0.0001)
+# save_entries(boundary, "boundary_mesh_x")
+
+# # creat and save particle
+# #particles=cube_particle(xmin=0, xmax=7, ymin=3, ymax=7, zmin=6, zmax=9, size=0.25)
+
+# particles = cylinder_quarter_particle(center=[0.,0.,0.],r=1., h=1., axis=2, size=0.06666666666667)
+# save_particle(particles, "particles")
+# print len(particles)
+
+# fig = plt.figure()
+# ax = fig.add_subplot(111, projection='3d')
+# ax.plot3D(particles[:,0],particles[:,1],particles[:,2],'.')
+# ax.axis('equal')
+# # plt.show()
+# plt.savefig('particles.png',format='png',dpi=600)
+
